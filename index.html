@@ -639,6 +639,7 @@ function render(){
   if(url){
     const fr=el("iframe",{class:"dash-frame",src:comEmbed(url),title:titulo,loading:"lazy"});
     if(SHELL) fr.addEventListener("load",()=>prenderFiltros(fr));
+    fr.addEventListener("load",()=>sincronizarTema(fr));
     route.append(fr);
     return;
   }
@@ -649,10 +650,25 @@ function renderPendente(route){
   route.append(el("div",{class:"soon-box"}, el("strong",{},"EM BREVE"), el("span",{},"Este painel está em preparação.")));
 }
 
-/* tema: o mesmo botão do dashboard; recolore o dashboard montado */
+/* tema: o botão do hub vale também para o painel aberto no iframe.
+   O painel, quando embutido, começa sempre claro e esconde o próprio botão de tema;
+   o hub aciona esse botão escondido (mesmo site), que troca as cores e redesenha os gráficos. */
+const hubEscuro = () => { const t=document.documentElement.getAttribute("data-theme"); return t ? t==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+function sincronizarTema(fr, tentativas=25){
+  try {
+    const d=fr.contentDocument; if(!d) return;
+    const painelEscuro = () => d.documentElement.getAttribute("data-theme")==="dark";
+    if(painelEscuro() === hubEscuro()) return;
+    d.getElementById("themeToggle")?.click();
+    /* o painel só liga o botão depois de carregar os dados: se ainda não respondeu, tenta de novo */
+    if(painelEscuro() !== hubEscuro() && tentativas>0) setTimeout(()=>sincronizarTema(fr, tentativas-1), 200);
+  } catch(e) { /* outro site: o painel segue no tema dele */ }
+}
 $("#themeToggle").addEventListener("click",()=>{
-  const r=document.documentElement; r.setAttribute("data-theme", r.getAttribute("data-theme")==="dark"?"light":"dark");
+  document.documentElement.setAttribute("data-theme", hubEscuro() ? "light" : "dark");
+  document.querySelectorAll(".dash-frame").forEach(sincronizarTema);
 });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => document.querySelectorAll(".dash-frame").forEach(sincronizarTema));
 
 
 /* ---------- áreas ---------- */
