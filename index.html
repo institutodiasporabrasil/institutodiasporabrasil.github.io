@@ -441,12 +441,18 @@ function preencher(t, dd){
     if(!its.length) dd.append(el("li",{class:"dd-empty"},"Nenhuma cidade cadastrada neste estado/província."));
     return;
   }
-  if(FPAIS && t.id!=="pais"){
+  /* cadeia: país → estados/províncias → cidades. O país filtra só os estados;
+     as cidades dependem só do estado escolhido. */
+  if(FPAIS && t.id==="estado"){
     const p=byId(PAISES,FPAIS);
     dd.append(el("li",{class:"dd-filter"}, el("span",{},"País: ",el("strong",{},p.nome))));
     const its=t.itens.filter(it=>it.pais===FPAIS);
     its.forEach(it=>dd.append(itemMenu(it)));
-    if(!its.length) dd.append(el("li",{class:"dd-empty"}, t.id==="estado" ? "Nenhum estado/província cadastrado neste país." : "Nenhuma cidade cadastrada neste país."));
+    if(!its.length) dd.append(el("li",{class:"dd-empty"},"Nenhum estado/província cadastrado neste país."));
+    return;
+  }
+  if(FPAIS && t.id==="cidade"){
+    dd.append(el("li",{class:"dd-empty"},"Escolha primeiro um estado/província para ver as cidades."));
     return;
   }
   if(FREG){
