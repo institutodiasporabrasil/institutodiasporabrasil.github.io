@@ -1,12 +1,12 @@
 tipo;nome;titulo_no_menu;regiao;pais;estado;conteudos
 mundo;Mundo;BRASILEIROS NO MUNDO;;;;População Total | Brasileiros no Censo 2010 | Origens e Destinos dos Fluxos Migratórios
-regiao;América do Norte;BRASILEIROS NA AMÉRICA DO NORTE;;;;População Total da Região
-regiao;América Latina e Caribe;BRASILEIROS NA AMÉRICA LATINA E CARIBE;;;;População Total da Região
-regiao;Europa;BRASILEIROS NA EUROPA;;;;População Total da Região
-regiao;Oriente Médio;BRASILEIROS NO ORIENTE MÉDIO;;;;População Total da Região
-regiao;Ásia;BRASILEIROS NA ÁSIA;;;;População Total da Região
-regiao;África;BRASILEIROS NA ÁFRICA;;;;População Total da Região
-regiao;Oceania;BRASILEIROS NA OCEANIA;;;;População Total da Região
+regiao;América do Norte;Brasileiros na América do Norte;;;;População Total da Região
+regiao;América Latina e Caribe;Brasileiros na América Latina e Caribe;;;;População Total da Região
+regiao;Europa;Brasileiros na Europa;;;;População Total da Região
+regiao;Oriente Médio;Brasileiros no Oriente Médio;;;;População Total da Região
+regiao;Ásia;Brasileiros na Ásia;;;;População Total da Região
+regiao;África;Brasileiros na África;;;;População Total da Região
+regiao;Oceania;Brasileiros na Oceania;;;;População Total da Região
 pais;Estados Unidos;Brasileiros nos Estados Unidos;América do Norte;;;População Total | Three Decades of Citizenship | Cidadania e Residência Permanente | DACA e Famílias de Status Misto | Brasileiros Removidos dos Estados Unidos
 pais;Canadá;Brasileiros no Canadá;América do Norte;;;População Total | Residentes Permanentes
 pais;México;Brasileiros no México;América do Norte;;;População Total
