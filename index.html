@@ -505,7 +505,8 @@ function preencher(t, dd){
     return;
   }
   if(FPAIS && t.id==="cidade"){
-    dd.append(el("li",{class:"dd-empty"},"Escolha primeiro um estado/província para ver as cidades."));
+    const temEstados = ESTADOS.some(e=>e.pais===FPAIS);
+    dd.append(el("li",{class:"dd-empty"}, temEstados ? "Escolha primeiro um estado/província para ver as cidades." : "Nenhuma cidade cadastrada neste país."));
     return;
   }
   if(FREG){
