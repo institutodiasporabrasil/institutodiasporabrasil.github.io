@@ -421,7 +421,8 @@ function itemMenu(it){
   const sub=el("ul",{class:"submenu"});
   it.filhos.forEach(f=>sub.append(el("li",{class:f.padrao?"so-estreito":null},el("button",{class:"mi",type:"button",onclick:()=>ir(f.sel)},f.rotulo, temDash(f.sel)?el("span",{class:"dot",title:"tem dashboard"},"●"):el("span",{class:"soon"},"em breve")))));
   const b=el("button",{class:"mi",type:"button","aria-haspopup":"true",
-    onclick:()=>{ if(estreito()){ li.classList.toggle("open"); li.parentElement.querySelectorAll(":scope > .has-sub").forEach(x=>{ if(x!==li) x.classList.remove("open"); }); return; } ir(it.sel); }},
+    /* o item pai (ex.: um país) só abre a lista de conteúdos; o painel abre ao escolher um conteúdo */
+    onclick:()=>{ li.classList.toggle("open"); li.parentElement.querySelectorAll(":scope > .has-sub").forEach(x=>{ if(x!==li) x.classList.remove("open"); }); if(li.classList.contains("open")) caber(sub); }},
     it.rotulo, el("span",{class:"arr","aria-hidden":"true"}, temDash(it.sel)?"● ›":"›"));
   li.append(b, sub); return li;
 }
