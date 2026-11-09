@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dados — Instituto Diáspora Brasil</title>
+<script>
+  /* Modo aplicativo: dentro do site do Instituto (iframe) ou com ?embed=1.
+     O hub não rola; o topo fica sempre visível e só a área do painel rola. */
+  if (new URLSearchParams(location.search).has("embed") || window.self !== window.top)
+    document.documentElement.setAttribute("data-shell", "");
+</script>
 <style>
   /* Mesmos tokens, tipografia e componentes do dashboard brasileiros-eua (IDB) */
   :root {
@@ -152,6 +158,18 @@
     }
     .top-fixa.is-stuck { box-shadow: 0 10px 16px -14px var(--bar-shadow); }
   }
+  /* ---------- modo aplicativo (dentro do WordPress) ---------- */
+  :root[data-shell], :root[data-shell] body { height: 100%; }
+  :root[data-shell] body { overflow: hidden; padding: 12px 16px 0; }
+  :root[data-shell] .wrap { height: 100%; display: flex; flex-direction: column; }
+  :root[data-shell] .top-fixa { position: static; flex: none; margin: 0; padding: 0 0 4px; box-shadow: none; }
+  :root[data-shell] .site-head .brand { display: none; }          /* o site já tem a logo */
+  :root[data-shell] .site-head { padding-bottom: 10px; margin-bottom: 10px; }
+  :root[data-shell] .secbtn[aria-current="page"]::after { bottom: -11px; }
+  :root[data-shell] .route-head { display: none; }                /* o conteúdo aparece no fim da trilha */
+  :root[data-shell] .route { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+  :root[data-shell] .dash-frame { flex: 1; min-height: 0; height: auto !important; }
+  :root[data-shell] .crumbs .atual { color: var(--text-primary); font-weight: 600; }
   .crumbs button { border: 0; background: none; padding: 0; color: var(--text-secondary); cursor: pointer; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
   .route-head h2 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
   .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -324,6 +342,20 @@
 </div>
 <div class="tooltip" id="tooltip" hidden></div>
 <script>
+const SHELL = document.documentElement.hasAttribute("data-shell");
+/* Modo aplicativo: o painel rola por dentro do iframe, então a barra de filtros dele
+   pode voltar a ficar presa no topo. Hub e painéis estão no mesmo site
+   (institutodiasporabrasil.github.io), por isso o hub consegue ajustar a página do painel
+   sem mudar o repositório dele. */
+function prenderFiltros(fr){
+  try {
+    const d = fr.contentDocument; if (!d) return;
+    const s = d.createElement("style");
+    s.textContent = ":root[data-embed] .filters{position:sticky!important;top:0!important}:root[data-embed] body{padding-top:0}";
+    d.head.append(s);
+    fr.contentWindow.dispatchEvent(new Event("scroll"));
+  } catch (e) { /* outro site: segue sem filtros presos */ }
+}
 /* ===================== Navegação (hierarquia da planilha) ===================== */
 const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
 const DASH_EUA = "/brasileiros-eua/";
@@ -551,12 +583,16 @@ function render(){
   if(est) passos.push([est.nome,{reg:S.reg,pais:S.pais,est:est.id}]);
   if(cid) passos.push([cid.nome,{reg:S.reg,pais:S.pais,est:S.est,cid:cid.id}]);
   passos.forEach(([nm,sel],i)=>{ if(i) crumbs.append(el("span",{},"›")); crumbs.append(i<passos.length-1?el("button",{type:"button",onclick:()=>{ if(!sel.reg) FREG=""; else if(!sel.pais) FREG=sel.reg; FPAIS=sel.pais&&!sel.est?sel.pais:""; FEST=sel.est&&!sel.cid?sel.est:""; setState(sel); }},nm):el("span",{},nm)); });
+  /* no modo aplicativo o título some; a trilha termina no conteúdo aberto */
+  if(SHELL && ind){ crumbs.append(el("span",{},"›"), el("span",{class:"atual"},ind)); }
   $("#routeHead").replaceChildren(el("h2",{}, ind ? titulo+" — "+ind : titulo));
 
   const route=$("#route"); route.replaceChildren();
   const url = DASHBOARDS[noKey()+"|"+S.ind];
   if(url){
-    route.append(el("iframe",{class:"dash-frame",src:comEmbed(url),title:titulo,loading:"lazy"}));
+    const fr=el("iframe",{class:"dash-frame",src:comEmbed(url),title:titulo,loading:"lazy"});
+    if(SHELL) fr.addEventListener("load",()=>prenderFiltros(fr));
+    route.append(fr);
     return;
   }
   renderPendente(route);
@@ -595,6 +631,7 @@ addEventListener("scroll", () => topFixa.classList.toggle("is-stuck", scrollY > 
 abrirArea(AREAS[0].id);
 /* altura do iframe: o dashboard informa a própria altura (mesmo protocolo do snippet do WordPress) */
 addEventListener("message", e => {
+  if (SHELL) return;   /* no modo aplicativo o painel ocupa o espaço livre e rola por dentro */
   if (!e.data || e.data.type !== "idb-dashboard-height") return;
   document.querySelectorAll(".dash-frame").forEach(f => { if (f.contentWindow === e.source) f.style.height = e.data.height + "px"; });
 });
