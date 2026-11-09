@@ -341,7 +341,7 @@
   <main class="route" id="route" aria-live="polite"></main>
 </div>
 <div class="tooltip" id="tooltip" hidden></div>
-<script>
+<script type="module">
 const SHELL = document.documentElement.hasAttribute("data-shell");
 /* Modo aplicativo: o painel rola por dentro do iframe, então a barra de filtros dele
    pode voltar a ficar presa no topo. Hub e painéis estão no mesmo site
@@ -359,49 +359,75 @@ function prenderFiltros(fr){
 /* ===================== Navegação (hierarquia da planilha) ===================== */
 const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
 const DASH_EUA = "/brasileiros-eua/";
-const REGIOES = [
-  ["america-do-norte","América do Norte","BRASILEIROS NA AMÉRICA DO NORTE"],
-  ["america-latina-caribe","América Latina e Caribe","BRASILEIROS NA AMÉRICA LATINA E CARIBE"],
-  ["europa","Europa","BRASILEIROS NA EUROPA"],
-  ["oriente-medio","Oriente Médio","BRASILEIROS NO ORIENTE MÉDIO"],
-  ["asia","Ásia","BRASILEIROS NA ÁSIA"],
-  ["africa","África","BRASILEIROS NA ÁFRICA"],
-  ["oceania","Oceania","BRASILEIROS NA OCEANIA"]
-].map(([id,nome,rotulo])=>({id,nome,rotulo}));
+/* ---------- Lista do menu: lida do arquivo menu.csv (editável no Excel ou no GitHub) ----------
+   Colunas: tipo; nome; titulo_no_menu; regiao; pais; estado; conteudos
+   - tipo: mundo, regiao, pais, estado ou cidade
+   - regiao / pais / estado: o NOME do item a que pertence, igual à coluna "nome" dele
+   - conteudos: separados por " | "; o 1º é o que abre por padrão
+   O identificador de cada item (usado nos endereços e na ligação com os painéis) vem do nome:
+   "Estados Unidos" → estados-unidos. Linhas com erro são ignoradas e listadas no console. */
+function lerCSV(txt){
+  txt = txt.replace(/^﻿/, "");
+  const sep = (txt.split(/\r?\n/)[0].match(/;/g)||[]).length >= (txt.split(/\r?\n/)[0].match(/,/g)||[]).length ? ";" : ",";
+  const linhas = []; let campo = "", linha = [], aspas = false;
+  for (let i = 0; i < txt.length; i++) {
+    const ch = txt[i];
+    if (aspas) { if (ch === '"') { if (txt[i+1] === '"') { campo += '"'; i++; } else aspas = false; } else campo += ch; continue; }
+    if (ch === '"') aspas = true;
+    else if (ch === sep) { linha.push(campo); campo = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && txt[i+1] === "\n") i++; linha.push(campo); linhas.push(linha); linha = []; campo = ""; }
+    else campo += ch;
+  }
+  if (campo || linha.length) { linha.push(campo); linhas.push(linha); }
+  const cab = (linhas.shift()||[]).map(c => slug(c).replace(/-/g, "_"));
+  return linhas.filter(l => l.some(c => c.trim())).map((l, n) => {
+    const o = { _linha: n + 2 }; cab.forEach((c, i) => o[c] = (l[i]||"").trim()); return o;
+  });
+}
+const avisos = [];
+const lista = s => (s||"").split("|").map(x => x.trim()).filter(Boolean);
+let REGIOES = [], PAISES = [], ESTADOS = [], CIDADES = [], MUNDO_IND = ["População Total"];
+async function carregarMenu(){
+  const r = await fetch("menu.csv", { cache: "no-cache" });
+  if (!r.ok) throw new Error("menu.csv: " + r.status);
+  const linhas = lerCSV(await r.text());
+  const ruim = (l, msg) => avisos.push(`menu.csv linha ${l._linha}: ${msg} — linha ignorada`);
+  const ids = new Set();
+  const novo = (l, tipo) => { const id = slug(l.nome||""); if (!id) { ruim(l, "falta o nome"); return null; }
+    if (ids.has(tipo+":"+id)) { ruim(l, `"${l.nome}" repetido`); return null; } ids.add(tipo+":"+id); return id; };
+  for (const l of linhas) if (l.tipo === "mundo") { const c = lista(l.conteudos); if (c.length) MUNDO_IND = c; }
+  for (const l of linhas) if (l.tipo === "regiao") { const id = novo(l, "regiao"); if (!id) continue;
+    REGIOES.push({ id, nome: l.nome, rotulo: l.titulo_no_menu || l.nome, conteudos: lista(l.conteudos).length ? lista(l.conteudos) : ["População Total da Região"] }); }
+  for (const l of linhas) if (l.tipo === "pais") { const id = novo(l, "pais"); if (!id) continue;
+    const reg = slug(l.regiao||""); if (!REGIOES.some(x => x.id === reg)) { ruim(l, `região "${l.regiao}" não cadastrada`); continue; }
+    PAISES.push({ id, nome: l.nome, rotulo: l.titulo_no_menu || l.nome, regiao: reg, conteudos: lista(l.conteudos).length ? lista(l.conteudos) : ["População Total"] }); }
+  for (const l of linhas) if (l.tipo === "estado") { const id = novo(l, "estado"); if (!id) continue;
+    const pais = slug(l.pais||""); if (!PAISES.some(x => x.id === pais)) { ruim(l, `país "${l.pais}" não cadastrado`); continue; }
+    ESTADOS.push({ id, nome: l.nome, rotulo: l.titulo_no_menu || l.nome, pais }); }
+  for (const l of linhas) if (l.tipo === "cidade") { const id = novo(l, "cidade"); if (!id) continue;
+    const pais = slug(l.pais||""); if (!PAISES.some(x => x.id === pais)) { ruim(l, `país "${l.pais}" não cadastrado`); continue; }
+    const est = slug(l.estado||""); if (est && !ESTADOS.some(x => x.id === est && x.pais === pais)) { ruim(l, `estado "${l.estado}" não cadastrado em ${l.pais}`); continue; }
+    CIDADES.push({ id, nome: l.nome, rotulo: l.titulo_no_menu || l.nome, pais, estado: est }); }
+  for (const l of linhas) if (!["mundo","regiao","pais","estado","cidade"].includes(l.tipo)) ruim(l, `tipo "${l.tipo}" desconhecido`);
+  if (avisos.length) console.warn(avisos.join("\n"));
+  /* conferência para quem edita o menu.csv: abrir o site com ?verificar no endereço */
+  if (new URLSearchParams(location.search).has("verificar")) {
+    const box = document.createElement("div");
+    box.style.cssText = "margin:0 0 16px;padding:12px 14px;border-radius:10px;font-size:13px;border:1px solid " + (avisos.length ? "#d97706;background:#fff7ed;color:#7c2d12" : "#16a34a;background:#f0fdf4;color:#14532d");
+    box.innerHTML = avisos.length
+      ? "<strong>menu.csv: " + avisos.length + " linha(s) com problema</strong><ul style='margin:6px 0 0;padding-left:18px'>" + avisos.map(a => "<li></li>").join("") + "</ul>"
+      : `<strong>menu.csv sem problemas</strong> — ${REGIOES.length} regiões, ${PAISES.length} países, ${ESTADOS.length} estados/províncias, ${CIDADES.length} cidades.`;
+    box.querySelectorAll("li").forEach((li, i) => li.textContent = avisos[i]);
+    document.querySelector(".wrap").prepend(box);
+  }
+}
+try { await carregarMenu(); }
+catch (e) {
+  console.error(e);
+  document.getElementById("route").replaceChildren(Object.assign(document.createElement("p"), { textContent: "Não foi possível carregar o menu (menu.csv). Tente recarregar a página." }));
+  throw e;
+}
 const POPT=["População Total"];
-const PAISES = [
-  ["estados-unidos","Estados Unidos","Brasileiros nos Estados Unidos","america-do-norte",["População Total","Three Decades of Citizenship","Cidadania e Residência Permanente","DACA e Famílias de Status Misto","Brasileiros Removidos dos Estados Unidos"]],
-  ["canada","Canadá","Brasileiros no Canadá","america-do-norte",["População Total","Residentes Permanentes"]],
-  ["mexico","México","Brasileiros no México","america-do-norte",POPT],
-  ["chile","Chile","Brasileiros no Chile","america-latina-caribe",POPT],
-  ["argentina","Argentina","Brasileiros na Argentina","america-latina-caribe",POPT],
-  ["uruguai","Uruguai","Brasileiros no Uruguai","america-latina-caribe",POPT],
-  ["bolivia","Bolívia","Brasileiros na Bolívia","america-latina-caribe",POPT],
-  ["paraguai","Paraguai","Brasileiros no Paraguai","america-latina-caribe",POPT],
-  ["portugal","Portugal","Brasileiros em Portugal","europa",POPT],
-  ["espanha","Espanha","Brasileiros na Espanha","europa",POPT],
-  ["italia","Itália","Brasileiros na Itália","europa",POPT],
-  ["franca","França","Brasileiros na França","europa",POPT],
-  ["alemanha","Alemanha","Brasileiros na Alemanha","europa",POPT],
-  ["irlanda","Irlanda","Brasileiros na Irlanda","europa",POPT],
-  ["israel","Israel","Brasileiros em Israel","oriente-medio",POPT],
-  ["libano","Líbano","Brasileiros no Líbano","oriente-medio",POPT],
-  ["japao","Japão","Brasileiros no Japão","asia",POPT],
-  ["china","China","Brasileiros na China","asia",POPT],
-  ["angola","Angola","Brasileiros em Angola","africa",POPT],
-  ["australia","Austrália","Brasileiros na Austrália","oceania",POPT],
-  ["nova-zelandia","Nova Zelândia","Brasileiros na Nova Zelândia","oceania",POPT]
-].map(([id,nome,rotulo,regiao,conteudos])=>({id,nome,rotulo,regiao,conteudos}));
-const ESTADOS = [
-  {id:"florida", nome:"Flórida", rotulo:"Brasileiros na Flórida", pais:"estados-unidos", census:"Florida"},
-  {id:"massachusetts", nome:"Massachusetts", rotulo:"Brasileiros em Massachusetts", pais:"estados-unidos", census:"Massachusetts"}
-];
-const CIDADES = [
-  {id:"boston", nome:"Boston", rotulo:"Boston", pais:"estados-unidos", estado:"massachusetts"},
-  {id:"new-york", nome:"New York", rotulo:"New York", pais:"estados-unidos", estado:""}
-];
-const MUNDO_IND = ["População Total","Brasileiros no Censo 2010","Origens e Destinos dos Fluxos Migratórios"];
-const REG_IND = ["População Total da Região"];
 
 /* Dashboards já publicados: seleção → URL */
 /* chave = "<nível>:<id>|<conteúdo>" — níveis: mundo, regiao:<id>, pais:<id>, estado:<id>, cidade:<id>
@@ -417,10 +443,10 @@ const byId=(l,id)=>l.find(x=>x.id===id);
 const subconteudos = (lista, sel) => lista.length < 2 ? null : lista.map((c,i)=>({rotulo:c, padrao:i===0, sel:sel(c)}));
 const MENU = [
   {id:"mundo", rotulo:"BRASILEIROS NO MUNDO", padrao:{}, itens: MUNDO_IND.map((c,i)=>({rotulo:c, padrao:i===0, sel:{ind:slug(c)}}))},
-  {id:"regiao", rotulo:"BRASILEIROS POR REGIÃO", padrao:{visao:"regioes"}, itens: [{rotulo:"Total", padrao:true, sel:{visao:"regioes"}}].concat(REGIOES.map(r=>({rotulo:r.rotulo, sel:{reg:r.id}, filhos:subconteudos(REG_IND, c=>({reg:r.id, ind:slug(c)}))})))},
+  {id:"regiao", rotulo:"BRASILEIROS POR REGIÃO", padrao:{visao:"regioes"}, itens: [{rotulo:"Total", padrao:true, sel:{visao:"regioes"}}].concat(REGIOES.map(r=>({rotulo:r.rotulo, sel:{reg:r.id}, filhos:subconteudos(r.conteudos, c=>({reg:r.id, ind:slug(c)}))})))},
   {id:"pais", rotulo:"BRASILEIROS POR PAÍS", itens: PAISES.map(p=>({rotulo:p.rotulo, grupo:p.regiao, pais:p.id, sel:{reg:p.regiao,pais:p.id}, filhos:p.conteudos.map(c=>({rotulo:c, sel:{reg:p.regiao,pais:p.id,ind:slug(c)}}))}))},
-  {id:"estado", rotulo:"BRASILEIROS POR ESTADOS/PROVÍNCIAS", itens: ESTADOS.map(e=>({rotulo:e.rotulo, grupo:byId(PAISES,e.pais).regiao, pais:e.pais, sel:{reg:"america-do-norte",pais:e.pais,est:e.id}}))},
-  {id:"cidade", rotulo:"BRASILEIROS POR CIDADES", itens: CIDADES.map(c=>({rotulo:c.rotulo, grupo:byId(PAISES,c.pais).regiao, pais:c.pais, estado:c.estado, sel:{reg:"america-do-norte",pais:c.pais,est:c.estado,cid:c.id}}))}
+  {id:"estado", rotulo:"BRASILEIROS POR ESTADOS/PROVÍNCIAS", itens: ESTADOS.map(e=>({rotulo:e.rotulo, grupo:byId(PAISES,e.pais).regiao, pais:e.pais, sel:{reg:byId(PAISES,e.pais).regiao,pais:e.pais,est:e.id}}))},
+  {id:"cidade", rotulo:"BRASILEIROS POR CIDADES", itens: CIDADES.map(c=>({rotulo:c.rotulo, grupo:byId(PAISES,c.pais).regiao, pais:c.pais, estado:c.estado, sel:{reg:byId(PAISES,c.pais).regiao,pais:c.pais,est:c.estado,cid:c.id}}))}
 ];
 
 const $ = s => document.querySelector(s);
@@ -445,7 +471,7 @@ function indicadores(){
   const n=nivel();
   if(n==="mundo") return MUNDO_IND;
   if(n==="regioes") return ["Total"];
-  if(n==="regiao") return REG_IND;
+  if(n==="regiao") return byId(REGIOES,S.reg).conteudos;
   if(n==="pais") return byId(PAISES,S.pais).conteudos;
   return POPT;
 }

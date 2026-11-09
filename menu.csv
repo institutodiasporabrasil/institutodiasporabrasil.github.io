@@ -1,0 +1,34 @@
+tipo;nome;titulo_no_menu;regiao;pais;estado;conteudos
+mundo;Mundo;BRASILEIROS NO MUNDO;;;;População Total | Brasileiros no Censo 2010 | Origens e Destinos dos Fluxos Migratórios
+regiao;América do Norte;BRASILEIROS NA AMÉRICA DO NORTE;;;;População Total da Região
+regiao;América Latina e Caribe;BRASILEIROS NA AMÉRICA LATINA E CARIBE;;;;População Total da Região
+regiao;Europa;BRASILEIROS NA EUROPA;;;;População Total da Região
+regiao;Oriente Médio;BRASILEIROS NO ORIENTE MÉDIO;;;;População Total da Região
+regiao;Ásia;BRASILEIROS NA ÁSIA;;;;População Total da Região
+regiao;África;BRASILEIROS NA ÁFRICA;;;;População Total da Região
+regiao;Oceania;BRASILEIROS NA OCEANIA;;;;População Total da Região
+pais;Estados Unidos;Brasileiros nos Estados Unidos;América do Norte;;;População Total | Three Decades of Citizenship | Cidadania e Residência Permanente | DACA e Famílias de Status Misto | Brasileiros Removidos dos Estados Unidos
+pais;Canadá;Brasileiros no Canadá;América do Norte;;;População Total | Residentes Permanentes
+pais;México;Brasileiros no México;América do Norte;;;População Total
+pais;Chile;Brasileiros no Chile;América Latina e Caribe;;;População Total
+pais;Argentina;Brasileiros na Argentina;América Latina e Caribe;;;População Total
+pais;Uruguai;Brasileiros no Uruguai;América Latina e Caribe;;;População Total
+pais;Bolívia;Brasileiros na Bolívia;América Latina e Caribe;;;População Total
+pais;Paraguai;Brasileiros no Paraguai;América Latina e Caribe;;;População Total
+pais;Portugal;Brasileiros em Portugal;Europa;;;População Total
+pais;Espanha;Brasileiros na Espanha;Europa;;;População Total
+pais;Itália;Brasileiros na Itália;Europa;;;População Total
+pais;França;Brasileiros na França;Europa;;;População Total
+pais;Alemanha;Brasileiros na Alemanha;Europa;;;População Total
+pais;Irlanda;Brasileiros na Irlanda;Europa;;;População Total
+pais;Israel;Brasileiros em Israel;Oriente Médio;;;População Total
+pais;Líbano;Brasileiros no Líbano;Oriente Médio;;;População Total
+pais;Japão;Brasileiros no Japão;Ásia;;;População Total
+pais;China;Brasileiros na China;Ásia;;;População Total
+pais;Angola;Brasileiros em Angola;África;;;População Total
+pais;Austrália;Brasileiros na Austrália;Oceania;;;População Total
+pais;Nova Zelândia;Brasileiros na Nova Zelândia;Oceania;;;População Total
+estado;Flórida;Brasileiros na Flórida;;Estados Unidos;;
+estado;Massachusetts;Brasileiros em Massachusetts;;Estados Unidos;;
+cidade;Boston;Boston;;Estados Unidos;Massachusetts;
+cidade;New York;New York;;Estados Unidos;;
