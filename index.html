@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dados — Instituto Diáspora Brasil</title>
+<style>
+  /* Mesmos tokens, tipografia e componentes do dashboard brasileiros-eua (IDB) */
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --gridline: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11, 11, 11, 0.10);
+    --series-1: #2a78d6; --series-2: #eb6834;
+    --seq-1: #E3E8E2; --seq-2: #8EC3B9; --seq-3: #2F8F81; --seq-4: #0E5A4E;
+    --nodata: #e8e7e2; --success: #006300; --danger: #d03b3b;
+    --bar-accent: #2F8F81; --bar-tint: 7%; --bar-shadow: rgba(0, 0, 0, 0.35); --edge-shadow: rgba(0, 0, 0, 0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface-1: #1a1a19;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --gridline: #2c2c2a; --baseline: #383835; --border: rgba(255, 255, 255, 0.10);
+      --series-1: #3987e5; --series-2: #d95926; --nodata: #262624; --success: #0ca30c; --danger: #e66767;
+      --bar-accent: #45B3A1; --bar-tint: 12%; --bar-shadow: rgba(0, 0, 0, 0.8); --edge-shadow: rgba(0, 0, 0, 0.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+    --gridline: #2c2c2a; --baseline: #383835; --border: rgba(255, 255, 255, 0.10);
+    --series-1: #3987e5; --series-2: #d95926; --nodata: #262624; --success: #0ca30c; --danger: #e66767;
+    --bar-accent: #45B3A1; --bar-tint: 12%; --bar-shadow: rgba(0, 0, 0, 0.8); --edge-shadow: rgba(0, 0, 0, 0.7);
+  }
+
+  * { box-sizing: border-box; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--page); color: var(--text-primary);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding-inline: 20px; padding-block: 24px 48px;
+  }
+  @media (max-width: 480px) { body { padding-inline: 16px; } }
+  .wrap { max-width: 1180px; margin: 0 auto; position: relative; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--bar-accent); outline-offset: 2px; }
+
+  header.page-head { margin-bottom: 16px; }
+  header.page-head .logo { display: block; height: 64px; width: auto; margin: 0 0 12px; }
+  .logo-dark { display: none !important; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .logo-light { display: none !important; }
+    :root:not([data-theme="light"]) .logo-dark { display: block !important; }
+  }
+  :root[data-theme="dark"] .logo-light { display: none !important; }
+  :root[data-theme="dark"] .logo-dark { display: block !important; }
+  header.page-head h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header.page-head p { margin: 0; color: var(--text-secondary); max-width: 760px; }
+  .theme-toggle {
+    position: absolute; top: 0; right: 0;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+    border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  }
+
+  /* ---------- Menu (hierarquia da planilha) ---------- */
+  .nav { position: relative; margin-bottom: 12px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; }
+  .navbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px; margin: 0; list-style: none; }
+  .topbtn {
+    display: flex; align-items: center; gap: 8px; border: 0; background: none; cursor: pointer;
+    padding: 9px 12px; border-radius: 7px; color: var(--text-primary);
+    font-size: 12px; font-weight: 600; letter-spacing: 0.03em; text-align: left;
+  }
+  .topbtn:hover, .topbtn[aria-expanded="true"] { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+  .topbtn { position: relative; }
+  .topbtn.current::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--bar-accent); border-radius: 0; }
+  .chev { width: 6px; height: 6px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); transform: rotate(45deg) translateY(-2px); flex: none; }
+  .topbtn[aria-expanded="true"] .chev { transform: rotate(225deg) translateY(-2px); }
+  /* dropdown simples: lista abaixo do item de topo, submenu abre ao lado */
+  .navbar > li { position: relative; }
+  .dd, .submenu {
+    list-style: none; margin: 0; padding: 4px; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 10px 24px -8px var(--bar-shadow); z-index: 30;
+  }
+  .dd { position: absolute; top: calc(100% + 4px); left: 0; min-width: 270px; }
+  .dd li { position: relative; }
+  .submenu { position: absolute; top: -5px; left: calc(100% + 2px); min-width: 260px; }
+  /* pontes invisíveis: o mouse atravessa o vão sem fechar o menu */
+  .dd::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+  .submenu::before { content: ""; position: absolute; top: 0; bottom: 0; left: -8px; width: 8px; }
+  .navbar > li.open > .dd { display: block; }
+  .has-sub.open > .submenu { display: block; }
+  @media (hover: hover) and (min-width: 861px) {
+    .has-sub:hover > .submenu, .has-sub:focus-within > .submenu { display: block; }
+  }
+  .mi {
+    width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    border: 0; background: none; cursor: pointer; text-align: left; color: var(--text-primary);
+    padding: 7px 10px; border-radius: 5px; font-size: 13px; white-space: nowrap;
+  }
+  .mi:hover, .has-sub:hover > .mi, .has-sub.open > .mi { background: color-mix(in srgb, var(--bar-accent) 12%, var(--surface-1)); }
+  .mi .arr { color: var(--text-muted); font-size: 12px; }
+  .mi .dot { color: var(--bar-accent); font-size: 10px; }
+
+  /* ---------- Barra de filtros global (mesmo componente do dashboard) ---------- */
+  .filters {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 20px; padding: 12px 14px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    position: sticky; top: calc(8px + env(safe-area-inset-top, 0px)); z-index: 20;
+    transition: box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  }
+  .filters.is-stuck {
+    background: color-mix(in srgb, var(--bar-accent) var(--bar-tint), var(--surface-1));
+    border-color: color-mix(in srgb, var(--bar-accent) 45%, transparent);
+    box-shadow: inset 0 3px 0 var(--bar-accent), 0 10px 24px -8px var(--bar-shadow);
+  }
+  .filters.is-stuck label { color: var(--text-primary); font-weight: 500; }
+  .filters::before { content: ""; position: absolute; left: -1px; right: -1px; top: -9px; height: 9px; background: var(--page); }
+  @media (max-width: 600px) { .filters { position: static; } }
+  .filters .bar-logo { height: 28px; width: auto; margin-right: 4px; }
+  .filters:not(.is-stuck) .bar-logo { display: none !important; }
+  .filters label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .filters select {
+    font: inherit; font-size: 13px; color: var(--text-primary);
+    background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; max-width: 100%;
+  }
+  .filters select:disabled { opacity: 0.55; }
+  .filters .clear { margin-left: auto; border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+
+  /* ---------- Cabeçalho da página selecionada ---------- */
+  .route-head { margin-bottom: 14px; display: grid; gap: 6px; scroll-margin-top: 96px; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .crumbs button { border: 0; background: none; padding: 0; color: var(--text-secondary); cursor: pointer; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
+  .route-head h2 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tab {
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+    border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+  }
+  .tab[aria-selected="true"] { background: var(--text-primary); color: var(--page); border-color: var(--text-primary); }
+
+  /* ---------- Componentes do dashboard ---------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat-tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat-tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .stat-tile .value { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-tile .delta { font-size: 12px; margin-top: 4px; }
+  .delta.up { color: var(--success); } .delta.down { color: var(--danger); } .delta.flat { color: var(--text-muted); }
+  .cards { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .cards > * { min-width: 0; }
+  @media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative; overflow: hidden; }
+  .route > .card, .dash-embed > .card { margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 2px; }
+  .card .sub { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; }
+  .map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--text-secondary); margin: 0 0 10px; }
+  .map-legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .map-legend .swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 40;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; color: var(--text-secondary); box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-width: 220px;
+  }
+  .tooltip .t-title { color: var(--text-primary); font-weight: 600; margin-bottom: 4px; }
+  .tooltip .t-row { display: flex; justify-content: space-between; gap: 10px; }
+  .tooltip .t-row .v { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tooltip .t-row .k { display: flex; align-items: center; gap: 6px; }
+  .tooltip .k .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 6px 8px; border-bottom: 1px solid var(--gridline); cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface-1);
+  }
+  thead th.active { color: var(--text-primary); }
+  #rankingTable thead th .sort-ind { margin-left: 4px; font-size: 10px; color: var(--text-muted); }
+  #rankingTable thead th.active .sort-ind { color: var(--text-primary); }
+  #rankingTable thead th:hover { color: var(--text-primary); }
+  tbody td { padding: 6px 8px; border-bottom: 1px solid var(--gridline); }
+  tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
+  #rankingTable tr.state-active td { background: color-mix(in srgb, var(--series-2) 14%, var(--surface-1)); font-weight: 600; }
+  .table-scroll { max-height: 420px; overflow-y: auto; overflow-x: auto; border-radius: 6px; }
+  .full-table-wrap { position: relative; }
+  .full-table-scroll { max-height: 480px; overflow: auto; border-radius: 6px; border: 1px solid var(--border); }
+  .full-table-wrap.more-left .full-table th:first-child, .full-table-wrap.more-left .full-table td:first-child { border-right: 1px solid var(--baseline); box-shadow: 8px 0 10px -6px var(--edge-shadow); }
+  .full-table-wrap::after {
+    content: ""; position: absolute; pointer-events: none; top: 1px; bottom: calc(1px + var(--sb-x, 0px)); right: calc(1px + var(--sb-y, 0px)); width: 32px;
+    background: linear-gradient(to left, var(--surface-1), transparent); opacity: 0; transition: opacity 150ms ease;
+  }
+  .full-table-wrap.more-right::after { opacity: 1; }
+  .full-table { border-collapse: separate; border-spacing: 0; font-size: 12px; white-space: nowrap; }
+  .full-table th, .full-table td { padding: 5px 10px; border-bottom: 1px solid var(--gridline); text-align: right; font-variant-numeric: tabular-nums; }
+  .full-table thead th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-size: 11px; font-weight: 600; border-bottom: 1px solid var(--baseline); z-index: 1; }
+  .full-table th:first-child, .full-table td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface-1); z-index: 2; }
+  .full-table thead th:first-child { z-index: 3; }
+  .full-table td.state-name { cursor: pointer; color: var(--text-primary); }
+  .full-table td.state-name:hover { text-decoration: underline; }
+  .full-table td.no-data { color: var(--text-muted); }
+  .full-table th.year-active, .full-table td.year-active { background: color-mix(in srgb, var(--series-1) 14%, var(--surface-1)); }
+  .full-table tr.state-active td { background: color-mix(in srgb, var(--series-2) 12%, var(--surface-1)); }
+  .full-table tr.state-active td.year-active { background: color-mix(in srgb, var(--series-2) 22%, var(--surface-1)); }
+  .full-table tr.total-row td { font-weight: 700; border-top: 2px solid var(--baseline); border-bottom: none; }
+  .full-table tr:not(.total-row):hover td:not(.year-active) { background: color-mix(in srgb, var(--text-primary) 4%, var(--surface-1)); }
+  .state-path { stroke: var(--surface-1); stroke-width: 1px; cursor: pointer; }
+  .state-path:hover { stroke: var(--text-primary); stroke-width: 1.5px; }
+  .state-path.selected { stroke: var(--danger); stroke-width: 3px; }
+  .state-path.out-region { opacity: 0.25; }
+  .region-outline { fill: none; stroke: var(--text-primary); stroke-width: 2px; pointer-events: none; }
+  .full-table tr.region-row td { font-weight: 600; border-bottom: 1px solid var(--baseline); }
+  .axis path, .axis line { stroke: var(--baseline); }
+  .axis text { fill: var(--text-muted); font-size: 10px; }
+  .gridline { stroke: var(--gridline); stroke-width: 1px; }
+  footer { margin-top: 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--gridline); padding-top: 12px; }
+  footer p { margin: 0 0 6px; }
+
+  .embed-note { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin: 0 0 10px; }
+  .embed-note a { color: var(--text-secondary); }
+
+  /* ---------- Páginas ainda sem dados ---------- */
+  .pending { display: inline-block; font-size: 11px; color: var(--text-muted); border: 1px dashed var(--baseline); border-radius: 999px; padding: 1px 8px; }
+  .empty-chart { height: 220px; border: 1px dashed var(--baseline); border-radius: 8px; display: grid; place-items: center; color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px; }
+  .child-link { border: 0; background: none; padding: 0; color: var(--text-primary); cursor: pointer; text-align: left; font-size: 13px; }
+  .child-link:hover { text-decoration: underline; }
+  .chip-dash { font-size: 11px; color: var(--bar-accent); font-weight: 600; margin-left: 6px; }
+
+  details.spec { font-size: 12px; color: var(--text-secondary); }
+  details.spec summary { cursor: pointer; font-weight: 600; color: var(--text-primary); font-size: 13px; }
+  details.spec ul { padding-left: 18px; display: grid; gap: 4px; }
+  details.spec pre { background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 10px; overflow: auto; max-height: 360px; font-size: 11px; }
+  .copy { border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+
+  @media (max-width: 860px) {
+    .navbar { flex-direction: column; }
+    .dd, .submenu { position: static; box-shadow: none; border: 0; min-width: 0; padding: 0 0 0 12px; }
+    .mi { white-space: normal; }
+  }
+  @media (max-width: 560px) {
+    .navbar { flex-direction: column; }
+    .theme-toggle { position: static; margin-bottom: 12px; }
+  }
+  /* ---------- iframe do dashboard ---------- */
+  .dash-frame { display: block; width: 100%; border: 0; min-height: 600px; background: transparent; }
+  .dd-group { padding: 8px 10px 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+  .dd-group:not(:first-child) { border-top: 1px solid var(--gridline); margin-top: 4px; }
+  .dd-filter { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 10px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--gridline); font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .dd-filter strong { color: var(--text-primary); }
+  .dd-filter button { border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 2px 10px; font-size: 11px; cursor: pointer; }
+  .dd-empty { padding: 8px 10px; font-size: 12px; color: var(--text-muted); }
+  .so-estreito { display: none; }
+  @media (max-width: 860px), (hover: none) { .so-estreito { display: list-item; } }
+  .soon-box { margin-bottom: 16px; border: 1px dashed var(--baseline); border-radius: 10px; padding: 48px 16px; display: grid; gap: 6px; place-items: center; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .soon-box strong { font-size: 12px; letter-spacing: 0.08em; color: var(--text-secondary); }
+  .soon { font-size: 10px; color: var(--text-muted); border: 1px dashed var(--baseline); border-radius: 999px; padding: 0 6px; margin-left: 8px; }
+
+
+  /* ---------- Cabeçalho do site: logo + menu numa faixa própria, separada do painel ---------- */
+  .site-head {
+    display: flex; align-items: center; gap: 12px 20px;
+    padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--gridline);
+  }
+  .site-head .brand { flex: none; display: block; }
+  .site-head .logo { display: block; height: 52px; width: auto; margin: 0; }
+  .sections { flex: 1; min-width: 0; }
+  .sections ul { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .secbtn {
+    border: 0; background: none; cursor: pointer; color: var(--text-secondary);
+    padding: 8px 12px; border-radius: 7px; font-size: 14px; font-weight: 600; position: relative;
+  }
+  .secbtn:hover { color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+  .secbtn[aria-current="page"] { color: var(--text-primary); }
+  .secbtn[aria-current="page"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -15px; height: 3px; background: var(--bar-accent); }
+  .site-head .theme-toggle { position: static; flex: none; }
+  /* dropdowns perto da borda direita abrem para a esquerda */
+  .dd.to-left { left: auto; right: 0; }
+  .submenu.to-left { left: auto; right: calc(100% + 2px); }
+  .submenu.to-left::before { left: auto; right: -8px; }
+  @media (max-width: 900px) {
+    .site-head { flex-wrap: wrap; }
+    .sections { order: 3; flex-basis: 100%; }
+    .sections ul { justify-content: flex-start; }
+    .secbtn[aria-current="page"]::after { bottom: 0; }
+    .site-head .theme-toggle { margin-left: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site-head">
+    <a class="brand" href="./" aria-label="Instituto Diáspora Brasil — início">
+      <img class="logo logo-light" src="logo.png" alt="Instituto Diáspora Brasil">
+      <img class="logo logo-dark" src="logo-dark.png" alt="">
+    </a>
+    <nav class="sections" aria-label="Áreas"><ul id="sections"></ul></nav>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">🌓 Tema</button>
+  </header>
+  <nav class="nav" id="secNav" aria-label="Menu da área"><ul class="navbar" id="navbar"></ul></nav>
+  <div class="route-head" id="routeHead"></div>
+  <main class="route" id="route" aria-live="polite"></main>
+</div>
+<div class="tooltip" id="tooltip" hidden></div>
+<script>
+/* ===================== Navegação (hierarquia da planilha) ===================== */
+const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+const DASH_EUA = "/brasileiros-eua/";
+const REGIOES = [
+  ["america-do-norte","América do Norte","BRASILEIROS NA AMÉRICA DO NORTE"],
+  ["america-latina-caribe","América Latina e Caribe","BRASILEIROS NA AMÉRICA LATINA E CARIBE"],
+  ["europa","Europa","BRASILEIROS NA EUROPA"],
+  ["oriente-medio","Oriente Médio","BRASILEIROS NO ORIENTE MÉDIO"],
+  ["asia","Ásia","BRASILEIROS NA ÁSIA"],
+  ["africa","África","BRASILEIROS NA ÁFRICA"],
+  ["oceania","Oceania","BRASILEIROS NA OCEANIA"]
+].map(([id,nome,rotulo])=>({id,nome,rotulo}));
+const POPT=["População Total"];
+const PAISES = [
+  ["estados-unidos","Estados Unidos","Brasileiros nos Estados Unidos","america-do-norte",["População Total","Three Decades of Citizenship","Cidadania e Residência Permanente","DACA e Famílias de Status Misto","Brasileiros Removidos dos Estados Unidos"]],
+  ["canada","Canadá","Brasileiros no Canadá","america-do-norte",["População Total","Residentes Permanentes"]],
+  ["mexico","México","Brasileiros no México","america-do-norte",POPT],
+  ["chile","Chile","Brasileiros no Chile","america-latina-caribe",POPT],
+  ["argentina","Argentina","Brasileiros na Argentina","america-latina-caribe",POPT],
+  ["uruguai","Uruguai","Brasileiros no Uruguai","america-latina-caribe",POPT],
+  ["bolivia","Bolívia","Brasileiros na Bolívia","america-latina-caribe",POPT],
+  ["paraguai","Paraguai","Brasileiros no Paraguai","america-latina-caribe",POPT],
+  ["portugal","Portugal","Brasileiros em Portugal","europa",POPT],
+  ["espanha","Espanha","Brasileiros na Espanha","europa",POPT],
+  ["italia","Itália","Brasileiros na Itália","europa",POPT],
+  ["franca","França","Brasileiros na França","europa",POPT],
+  ["alemanha","Alemanha","Brasileiros na Alemanha","europa",POPT],
+  ["irlanda","Irlanda","Brasileiros na Irlanda","europa",POPT],
+  ["israel","Israel","Brasileiros em Israel","oriente-medio",POPT],
+  ["libano","Líbano","Brasileiros no Líbano","oriente-medio",POPT],
+  ["japao","Japão","Brasileiros no Japão","asia",POPT],
+  ["china","China","Brasileiros na China","asia",POPT],
+  ["angola","Angola","Brasileiros em Angola","africa",POPT],
+  ["australia","Austrália","Brasileiros na Austrália","oceania",POPT],
+  ["nova-zelandia","Nova Zelândia","Brasileiros na Nova Zelândia","oceania",POPT]
+].map(([id,nome,rotulo,regiao,conteudos])=>({id,nome,rotulo,regiao,conteudos}));
+const ESTADOS = [
+  {id:"florida", nome:"Flórida", rotulo:"Brasileiros na Flórida", pais:"estados-unidos", census:"Florida"},
+  {id:"massachusetts", nome:"Massachusetts", rotulo:"Brasileiros em Massachusetts", pais:"estados-unidos", census:"Massachusetts"}
+];
+const CIDADES = [
+  {id:"boston", nome:"Boston", rotulo:"Boston", pais:"estados-unidos", estado:"massachusetts"},
+  {id:"new-york", nome:"New York", rotulo:"New York", pais:"estados-unidos", estado:""}
+];
+const MUNDO_IND = ["População Total","Brasileiros no Censo 2010","Origens e Destinos dos Fluxos Migratórios"];
+const REG_IND = ["População Total da Região"];
+
+/* Dashboards já publicados: seleção → URL */
+/* chave = "<nível>:<id>|<conteúdo>" — níveis: mundo, regiao:<id>, pais:<id>, estado:<id>, cidade:<id>
+   ex.: "mundo|populacao-total", "regiao:europa|populacao-total-da-regiao", "pais:canada|residentes-permanentes" */
+const DASHBOARDS = {
+  "pais:estados-unidos|populacao-total": DASH_EUA
+  /* estados e cidades terão painéis próprios (perfil demográfico/econômico por condado e cidade, ACS) */
+};
+const comEmbed = u => u + (u.includes("?") ? "&" : "?") + "embed=1";
+
+const byId=(l,id)=>l.find(x=>x.id===id);
+/* submenu de conteúdos: só existe se houver mais de um; o 1º (População Total) é o padrão do item pai */
+const subconteudos = (lista, sel) => lista.length < 2 ? null : lista.map((c,i)=>({rotulo:c, padrao:i===0, sel:sel(c)}));
+const MENU = [
+  {id:"mundo", rotulo:"BRASILEIROS NO MUNDO", padrao:{}, itens: MUNDO_IND.map((c,i)=>({rotulo:c, padrao:i===0, sel:{ind:slug(c)}}))},
+  {id:"regiao", rotulo:"BRASILEIROS POR REGIÃO", padrao:{visao:"regioes"}, itens: [{rotulo:"Total", padrao:true, sel:{visao:"regioes"}}].concat(REGIOES.map(r=>({rotulo:r.rotulo, sel:{reg:r.id}, filhos:subconteudos(REG_IND, c=>({reg:r.id, ind:slug(c)}))})))},
+  {id:"pais", rotulo:"BRASILEIROS POR PAÍS", itens: PAISES.map(p=>({rotulo:p.rotulo, grupo:p.regiao, pais:p.id, sel:{reg:p.regiao,pais:p.id}, filhos:p.conteudos.map(c=>({rotulo:c, sel:{reg:p.regiao,pais:p.id,ind:slug(c)}}))}))},
+  {id:"estado", rotulo:"BRASILEIROS POR ESTADOS/PROVÍNCIAS", itens: ESTADOS.map(e=>({rotulo:e.rotulo, grupo:byId(PAISES,e.pais).regiao, pais:e.pais, sel:{reg:"america-do-norte",pais:e.pais,est:e.id}}))},
+  {id:"cidade", rotulo:"BRASILEIROS POR CIDADES", itens: CIDADES.map(c=>({rotulo:c.rotulo, grupo:byId(PAISES,c.pais).regiao, pais:c.pais, estado:c.estado, sel:{reg:"america-do-norte",pais:c.pais,est:c.estado,cid:c.id}}))}
+];
+
+const $ = s => document.querySelector(s);
+/* Áreas do site (ao lado da logo). Cada área tem o seu próprio menu e dashboards;
+   só "Brasileiros no Mundo" tem menu por enquanto. */
+const AREAS = [
+  {id:"brasileiros-no-mundo", rotulo:"Brasileiros no Mundo", menu:true},
+  {id:"eleicoes-e-eleitores", rotulo:"Eleições e eleitores"},
+  {id:"imigracao-e-controle-fronteirico", rotulo:"Imigração e controle fronteiriço"},
+  {id:"remessas", rotulo:"Remessas"}
+];
+let AREA = AREAS[0].id;
+const el = (t,a={},...k)=>{const n=document.createElement(t);for(const[x,v]of Object.entries(a)){if(v==null)continue;if(x==="class")n.className=v;else if(x.startsWith("on"))n.addEventListener(x.slice(2),v);else n.setAttribute(x,v);}k.flat().forEach(c=>c!=null&&n.append(c));return n;};
+const fmtN = n => typeof n==="number" ? n.toLocaleString("pt-BR") : "–";
+
+let S = {visao:"",reg:"",pais:"",est:"",cid:"",ind:""};
+let dash = null, dashAbort = null;
+
+function nivel(){ return S.visao==="regioes"?"regioes":S.cid?"cidade":S.est?"estado":S.pais?"pais":S.reg?"regiao":"mundo"; }
+function noKey(){ const n=nivel(); return {regioes:"regioes",mundo:"mundo",regiao:"regiao:"+S.reg,pais:"pais:"+S.pais,estado:"estado:"+S.est,cidade:"cidade:"+S.cid}[n]; }
+function indicadores(){
+  const n=nivel();
+  if(n==="mundo") return MUNDO_IND;
+  if(n==="regioes") return ["Total"];
+  if(n==="regiao") return REG_IND;
+  if(n==="pais") return byId(PAISES,S.pais).conteudos;
+  return POPT;
+}
+function setState(sel){
+  S={visao:"",reg:"",pais:"",est:"",cid:"",ind:"",...sel};
+  const inds=indicadores().map(slug);
+  if(!inds.includes(S.ind)) S.ind=inds[0];
+  render(); marcarTopo();
+}
+
+/* ---------- menu ---------- */
+let aberto=null;
+const navbar=$("#navbar");
+const temDash = sel => { const n = sel.cid?"cidade:"+sel.cid : sel.est?"estado:"+sel.est : sel.pais?"pais:"+sel.pais : sel.reg?"regiao:"+sel.reg : "mundo"; return DASHBOARDS[n+"|"+(sel.ind||"populacao-total-da-regiao")] || DASHBOARDS[n+"|"+(sel.ind||"populacao-total")]; };
+const estreito = () => matchMedia("(max-width:860px), (hover:none)").matches;
+/* Filtro de região: ligado só pela escolha no menu "Brasileiros por região";
+   restringe as listas de país, estado/província e cidade, sempre com aviso visível. */
+let FREG = "";
+/* Filtro de estado/província: ligado só pela escolha no menu "Brasileiros por estados/províncias";
+   restringe a lista de cidades. Tem prioridade sobre o filtro de região. */
+let FEST = "";
+const FILTRAVEIS = ["pais","estado","cidade"];
+function itemMenu(it){
+  if(!it.filhos) return el("li",{class:it.padrao?"so-estreito":null},el("button",{class:"mi",type:"button",onclick:()=>ir(it.sel)},it.rotulo, temDash(it.sel)?el("span",{class:"dot",title:"tem dashboard"},"●"):el("span",{class:"soon"},"em breve")));
+  const li=el("li",{class:"has-sub"});
+  const sub=el("ul",{class:"submenu"});
+  it.filhos.forEach(f=>sub.append(el("li",{class:f.padrao?"so-estreito":null},el("button",{class:"mi",type:"button",onclick:()=>ir(f.sel)},f.rotulo, temDash(f.sel)?el("span",{class:"dot",title:"tem dashboard"},"●"):el("span",{class:"soon"},"em breve")))));
+  const b=el("button",{class:"mi",type:"button","aria-haspopup":"true",
+    onclick:()=>{ if(estreito()){ li.classList.toggle("open"); li.parentElement.querySelectorAll(":scope > .has-sub").forEach(x=>{ if(x!==li) x.classList.remove("open"); }); return; } ir(it.sel); }},
+    it.rotulo, el("span",{class:"arr","aria-hidden":"true"}, temDash(it.sel)?"● ›":"›"));
+  li.append(b, sub); return li;
+}
+function preencher(t, dd){
+  dd.replaceChildren();
+  if(!FILTRAVEIS.includes(t.id)){ t.itens.forEach(it=>dd.append(itemMenu(it))); return; }
+  if(t.id==="cidade" && FEST){
+    const e=byId(ESTADOS,FEST);
+    dd.append(el("li",{class:"dd-filter"}, el("span",{},"Estado/província: ",el("strong",{},e.nome))));
+    const its=t.itens.filter(it=>it.estado===FEST);
+    its.forEach(it=>dd.append(itemMenu(it)));
+    if(!its.length) dd.append(el("li",{class:"dd-empty"},"Nenhuma cidade cadastrada neste estado/província."));
+    return;
+  }
+  if(FREG){
+    const r=byId(REGIOES,FREG);
+    dd.append(el("li",{class:"dd-filter"}, el("span",{},"Região: ",el("strong",{},r.nome))));
+    const its=t.itens.filter(it=>it.grupo===FREG);
+    if(t.id==="pais") its.forEach(it=>dd.append(itemMenu(it)));
+    else PAISES.forEach(p=>{ const g=its.filter(it=>it.pais===p.id); if(!g.length) return; dd.append(el("li",{class:"dd-group"}, p.nome)); g.forEach(it=>dd.append(itemMenu(it))); });
+    if(!its.length) dd.append(el("li",{class:"dd-empty"},"Nenhum item cadastrado nesta região."));
+    return;
+  }
+  const grupos = t.id==="pais" ? REGIOES.map(r=>[r.nome, it=>it.grupo===r.id]) : PAISES.map(p=>[p.nome, it=>it.pais===p.id]);
+  grupos.forEach(([nome,f])=>{
+    const its=t.itens.filter(f);
+    if(!its.length) return;
+    dd.append(el("li",{class:"dd-group"}, nome));
+    its.forEach(it=>dd.append(itemMenu(it)));
+  });
+}
+MENU.forEach(t=>{
+  const dd=el("ul",{class:"dd",id:"dd-"+t.id});
+  preencher(t, dd);
+  const btn=el("button",{class:"topbtn",type:"button",id:"top-"+t.id,"aria-expanded":"false","aria-controls":"dd-"+t.id,onclick:()=>{ if(t.padrao && !estreito()){ ir(t.padrao, t.id); return; } aberto===t.id?fechar():abrir(t.id); }},t.rotulo,el("span",{class:"chev","aria-hidden":"true"}));
+  const li=el("li",{"data-top":t.id},btn,dd);
+  li.addEventListener("mouseenter",()=>{ if(!estreito()) abrir(t.id); });
+  li.addEventListener("mouseleave",()=>{ if(!estreito()) fechar(); });
+  navbar.append(li);
+});
+function caber(ul){
+  ul.classList.remove("to-left");
+  if(estreito()) return;
+  if(ul.getBoundingClientRect().right > document.documentElement.clientWidth - 8) ul.classList.add("to-left");
+}
+navbar.addEventListener("mouseover",e=>{ const li=e.target.closest(".has-sub"); if(li) caber(li.querySelector(":scope > .submenu")); });
+navbar.addEventListener("focusin",e=>{ const li=e.target.closest(".has-sub"); if(li) caber(li.querySelector(":scope > .submenu")); });
+function abrir(id){
+  if(aberto!==id){ const t=byId(MENU,id); preencher(t, $("#dd-"+id)); }
+  aberto=id;
+  navbar.querySelectorAll(":scope > li").forEach(li=>{ const on=li.dataset.top===id; li.classList.toggle("open",on); li.querySelector(".topbtn").setAttribute("aria-expanded",String(on)); if(on) caber(li.querySelector(":scope > .dd")); if(!on) li.querySelectorAll(".has-sub.open").forEach(x=>x.classList.remove("open")); });
+}
+function fechar(){ aberto=null; navbar.querySelectorAll(".open").forEach(x=>x.classList.remove("open")); navbar.querySelectorAll(".topbtn").forEach(b=>b.setAttribute("aria-expanded","false")); }
+function ir(sel, vindo=aberto){ fechar(); if(vindo==="regiao"){ FREG=sel.reg||""; FEST=""; } if(vindo==="estado") FEST=sel.est||""; setState(sel); $("#routeHead").scrollIntoView({block:"start",behavior:"smooth"}); }
+function marcarTopo(){ const n=nivel(); document.querySelectorAll(".topbtn").forEach(b=>b.classList.toggle("current",b.id==="top-"+(n==="regioes"?"regiao":n))); }
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&aberto){const id=aberto;fechar();$("#top-"+id).focus();}});
+document.addEventListener("click",e=>{if(aberto&&!e.target.closest(".nav"))fechar();});
+
+
+/* ---------- painel ---------- */
+function render(){
+  if(dashAbort){ dashAbort.abort(); dashAbort=null; dash=null; }
+  $("#tooltip").hidden = true;
+  const n=nivel(), reg=byId(REGIOES,S.reg), pais=byId(PAISES,S.pais), est=byId(ESTADOS,S.est), cid=byId(CIDADES,S.cid);
+  const titulo = n==="regioes" ? "Brasileiros por região" : cid?cid.rotulo : est?est.rotulo : pais?pais.rotulo : reg?reg.nome && "Brasileiros na região: "+reg.nome : "Brasileiros no mundo";
+  const inds=indicadores(), ind=inds.find(i=>slug(i)===S.ind);
+
+  const crumbs=el("div",{class:"crumbs"});
+  const passos=[["Mundo",{}]];
+  if(n==="regioes") passos.push(["Por região",{visao:"regioes"}]);
+  if(reg) passos.push([reg.nome,{reg:reg.id}]);
+  if(pais) passos.push([pais.nome,{reg:S.reg,pais:pais.id}]);
+  if(est) passos.push([est.nome,{reg:S.reg,pais:S.pais,est:est.id}]);
+  if(cid) passos.push([cid.nome,{reg:S.reg,pais:S.pais,est:S.est,cid:cid.id}]);
+  passos.forEach(([nm,sel],i)=>{ if(i) crumbs.append(el("span",{},"›")); crumbs.append(i<passos.length-1?el("button",{type:"button",onclick:()=>{ if(!sel.reg) FREG=""; else if(!sel.pais) FREG=sel.reg; FEST=sel.est&&!sel.cid?sel.est:""; setState(sel); }},nm):el("span",{},nm)); });
+$("#routeHead").replaceChildren(crumbs, el("h2",{}, ind ? titulo+" — "+ind : titulo));
+
+  const route=$("#route"); route.replaceChildren();
+  const url = DASHBOARDS[noKey()+"|"+S.ind];
+  if(url){
+    route.append(el("iframe",{class:"dash-frame",src:comEmbed(url),title:titulo,loading:"lazy"}));
+    return;
+  }
+  renderPendente(route);
+}
+
+function renderPendente(route){
+  route.append(el("div",{class:"soon-box"}, el("strong",{},"EM BREVE"), el("span",{},"Este painel está em preparação.")));
+}
+
+/* tema: o mesmo botão do dashboard; recolore o dashboard montado */
+$("#themeToggle").addEventListener("click",()=>{
+  const r=document.documentElement; r.setAttribute("data-theme", r.getAttribute("data-theme")==="dark"?"light":"dark");
+});
+
+
+/* ---------- áreas ---------- */
+const secUl = $("#sections");
+AREAS.forEach(a => secUl.append(el("li",{}, el("button",{class:"secbtn",type:"button","data-area":a.id,onclick:()=>abrirArea(a.id)}, a.rotulo))));
+function abrirArea(id){
+  AREA = id; fechar(); FREG = ""; FEST = "";
+  const a = byId(AREAS,id);
+  secUl.querySelectorAll(".secbtn").forEach(b => b.dataset.area===id ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
+  $("#secNav").hidden = !a.menu;
+  if (a.menu) { setState({ind:"populacao-total"}); return; }
+  $("#routeHead").replaceChildren(el("h2",{}, a.rotulo));
+  const route = $("#route"); route.replaceChildren(); renderPendente(route);
+}
+
+/* página inicial: Brasileiros no Mundo → População Total */
+abrirArea(AREAS[0].id);
+/* altura do iframe: o dashboard informa a própria altura (mesmo protocolo do snippet do WordPress) */
+addEventListener("message", e => {
+  if (!e.data || e.data.type !== "idb-dashboard-height") return;
+  document.querySelectorAll(".dash-frame").forEach(f => { if (f.contentWindow === e.source) f.style.height = e.data.height + "px"; });
+});
+</script>
+</body>
+</html>
