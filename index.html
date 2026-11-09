@@ -414,6 +414,10 @@ let FREG = "";
 /* Filtro de estado/província: ligado só pela escolha no menu "Brasileiros por estados/províncias";
    restringe a lista de cidades. Tem prioridade sobre o filtro de região. */
 let FEST = "";
+/* Filtro de país: ligado só pela escolha no menu "Brasileiros por país";
+   restringe as listas de estado/província e de cidade. Vale mais que o de região;
+   para cidades, o filtro de estado vale mais que ele. */
+let FPAIS = "";
 const FILTRAVEIS = ["pais","estado","cidade"];
 function itemMenu(it){
   if(!it.filhos) return el("li",{class:it.padrao?"so-estreito":null},el("button",{class:"mi",type:"button",onclick:()=>ir(it.sel)},it.rotulo, temDash(it.sel)?el("span",{class:"dot",title:"tem dashboard"},"●"):el("span",{class:"soon"},"em breve")));
@@ -435,6 +439,14 @@ function preencher(t, dd){
     const its=t.itens.filter(it=>it.estado===FEST);
     its.forEach(it=>dd.append(itemMenu(it)));
     if(!its.length) dd.append(el("li",{class:"dd-empty"},"Nenhuma cidade cadastrada neste estado/província."));
+    return;
+  }
+  if(FPAIS && t.id!=="pais"){
+    const p=byId(PAISES,FPAIS);
+    dd.append(el("li",{class:"dd-filter"}, el("span",{},"País: ",el("strong",{},p.nome))));
+    const its=t.itens.filter(it=>it.pais===FPAIS);
+    its.forEach(it=>dd.append(itemMenu(it)));
+    if(!its.length) dd.append(el("li",{class:"dd-empty"}, t.id==="estado" ? "Nenhum estado/província cadastrado neste país." : "Nenhuma cidade cadastrada neste país."));
     return;
   }
   if(FREG){
@@ -476,7 +488,7 @@ function abrir(id){
   navbar.querySelectorAll(":scope > li").forEach(li=>{ const on=li.dataset.top===id; li.classList.toggle("open",on); li.querySelector(".topbtn").setAttribute("aria-expanded",String(on)); if(on) caber(li.querySelector(":scope > .dd")); if(!on) li.querySelectorAll(".has-sub.open").forEach(x=>x.classList.remove("open")); });
 }
 function fechar(){ aberto=null; navbar.querySelectorAll(".open").forEach(x=>x.classList.remove("open")); navbar.querySelectorAll(".topbtn").forEach(b=>b.setAttribute("aria-expanded","false")); }
-function ir(sel, vindo=aberto){ fechar(); if(vindo==="regiao"){ FREG=sel.reg||""; FEST=""; } if(vindo==="estado") FEST=sel.est||""; setState(sel); $("#routeHead").scrollIntoView({block:"start",behavior:"smooth"}); }
+function ir(sel, vindo=aberto){ fechar(); if(vindo==="regiao"){ FREG=sel.reg||""; FPAIS=""; FEST=""; } if(vindo==="pais"){ FPAIS=sel.pais||""; FEST=""; } if(vindo==="estado") FEST=sel.est||""; setState(sel); $("#routeHead").scrollIntoView({block:"start",behavior:"smooth"}); }
 function marcarTopo(){ const n=nivel(); document.querySelectorAll(".topbtn").forEach(b=>b.classList.toggle("current",b.id==="top-"+(n==="regioes"?"regiao":n))); }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&aberto){const id=aberto;fechar();$("#top-"+id).focus();}});
 document.addEventListener("click",e=>{if(aberto&&!e.target.closest(".nav"))fechar();});
@@ -497,7 +509,7 @@ function render(){
   if(pais) passos.push([pais.nome,{reg:S.reg,pais:pais.id}]);
   if(est) passos.push([est.nome,{reg:S.reg,pais:S.pais,est:est.id}]);
   if(cid) passos.push([cid.nome,{reg:S.reg,pais:S.pais,est:S.est,cid:cid.id}]);
-  passos.forEach(([nm,sel],i)=>{ if(i) crumbs.append(el("span",{},"›")); crumbs.append(i<passos.length-1?el("button",{type:"button",onclick:()=>{ if(!sel.reg) FREG=""; else if(!sel.pais) FREG=sel.reg; FEST=sel.est&&!sel.cid?sel.est:""; setState(sel); }},nm):el("span",{},nm)); });
+  passos.forEach(([nm,sel],i)=>{ if(i) crumbs.append(el("span",{},"›")); crumbs.append(i<passos.length-1?el("button",{type:"button",onclick:()=>{ if(!sel.reg) FREG=""; else if(!sel.pais) FREG=sel.reg; FPAIS=sel.pais&&!sel.est?sel.pais:""; FEST=sel.est&&!sel.cid?sel.est:""; setState(sel); }},nm):el("span",{},nm)); });
 $("#routeHead").replaceChildren(crumbs, el("h2",{}, ind ? titulo+" — "+ind : titulo));
 
   const route=$("#route"); route.replaceChildren();
@@ -523,7 +535,7 @@ $("#themeToggle").addEventListener("click",()=>{
 const secUl = $("#sections");
 AREAS.forEach(a => secUl.append(el("li",{}, el("button",{class:"secbtn",type:"button","data-area":a.id,onclick:()=>abrirArea(a.id)}, a.rotulo))));
 function abrirArea(id){
-  AREA = id; fechar(); FREG = ""; FEST = "";
+  AREA = id; fechar(); FREG = ""; FPAIS = ""; FEST = "";
   const a = byId(AREAS,id);
   secUl.querySelectorAll(".secbtn").forEach(b => b.dataset.area===id ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
   $("#secNav").hidden = !a.menu;
