@@ -548,6 +548,9 @@ function preencher(t, dd){
     dd.append(el("li",{class:"dd-empty"}, temEstados ? "Escolha primeiro um estado/província para ver as cidades." : "Nenhuma cidade cadastrada neste país."));
     return;
   }
+  /* sem país escolhido, estados/províncias e cidades ficam vazios, com o que escolher primeiro */
+  if(t.id==="estado"){ dd.append(el("li",{class:"dd-empty"},"Escolha primeiro um país em “Brasileiros por país”.")); return; }
+  if(t.id==="cidade"){ dd.append(el("li",{class:"dd-empty"},"Escolha primeiro um país e um estado/província.")); return; }
   if(FREG){
     const r=byId(REGIOES,FREG);
     dd.append(el("li",{class:"dd-filter"}, el("span",{},"Região: ",el("strong",{},r.nome))));
