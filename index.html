@@ -611,7 +611,7 @@ function abrir(id){
   navbar.querySelectorAll(":scope > li").forEach(li=>{ const on=li.dataset.top===id; li.classList.toggle("open",on); li.querySelector(".topbtn").setAttribute("aria-expanded",String(on)); if(on) caber(li.querySelector(":scope > .dd")); if(!on) li.querySelectorAll(".has-sub.open").forEach(x=>x.classList.remove("open")); });
 }
 function fechar(){ aberto=null; navbar.querySelectorAll(".open").forEach(x=>x.classList.remove("open")); navbar.querySelectorAll(".topbtn").forEach(b=>b.setAttribute("aria-expanded","false")); }
-function ir(sel, vindo=aberto){ fechar(); if(vindo==="regiao"){ FREG=sel.reg||""; FPAIS=""; FEST=""; } if(vindo==="pais"){ FPAIS=sel.pais||""; FEST=""; } if(vindo==="estado") FEST=sel.est||""; setState(sel); $("#routeHead").scrollIntoView({block:"start",behavior:"smooth"}); }
+function ir(sel, vindo=aberto){ fechar(); if(vindo==="mundo"){ FREG=""; FPAIS=""; FEST=""; } /* "No mundo" volta ao topo da hierarquia */ if(vindo==="regiao"){ FREG=sel.reg||""; FPAIS=""; FEST=""; } if(vindo==="pais"){ FPAIS=sel.pais||""; FEST=""; } if(vindo==="estado") FEST=sel.est||""; setState(sel); $("#routeHead").scrollIntoView({block:"start",behavior:"smooth"}); }
 function marcarTopo(){ const n=nivel(); document.querySelectorAll(".topbtn").forEach(b=>b.classList.toggle("current",b.id==="top-"+(n==="regioes"?"regiao":n))); }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&aberto){const id=aberto;fechar();$("#top-"+id).focus();}});
 document.addEventListener("click",e=>{if(aberto&&!e.target.closest(".nav"))fechar();});
