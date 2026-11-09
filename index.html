@@ -96,6 +96,14 @@
   @media (hover: hover) and (min-width: 861px) {
     .has-sub:hover > .submenu, .has-sub:focus-within > .submenu { display: block; }
   }
+  /* telas largas: com o topo fixo, a lista não acompanha a rolagem da página; por isso ela
+     rola sozinha quando não cabe, e o submenu é posicionado na tela (fixed) para não ser cortado */
+  @media (min-width: 861px) {
+    .dd { overflow-y: auto; overscroll-behavior: contain; }
+    .dd::before { display: none; }
+    .navbar > li::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; }
+    .submenu { position: fixed; top: 0; left: 0; }
+  }
   .mi {
     width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
     border: 0; background: none; cursor: pointer; text-align: left; color: var(--text-primary);
@@ -132,8 +140,18 @@
   .filters .clear { margin-left: auto; border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
 
   /* ---------- Cabeçalho da página selecionada ---------- */
-  .route-head { margin-bottom: 14px; display: grid; gap: 6px; scroll-margin-top: 96px; }
-  .crumbs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .route-head { margin-bottom: 14px; display: grid; gap: 6px; scroll-margin-top: calc(var(--top-h, 0px) + 12px); }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-muted); min-height: 18px; margin-bottom: 6px; }
+  .crumbs:empty { display: none; }
+  /* topo fixo: logo + áreas, barra de menus e trilha ficam presos ao rolar (só em telas largas;
+     no celular os menus viram coluna e ocupariam a tela toda) */
+  @media (min-width: 861px) {
+    .top-fixa {
+      position: sticky; top: 0; z-index: 25; background: var(--page);
+      margin-top: -24px; padding-top: 24px; padding-bottom: 8px;
+    }
+    .top-fixa.is-stuck { box-shadow: 0 10px 16px -14px var(--bar-shadow); }
+  }
   .crumbs button { border: 0; background: none; padding: 0; color: var(--text-secondary); cursor: pointer; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
   .route-head h2 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
   .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -289,6 +307,7 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="top-fixa" id="topFixa">
   <header class="site-head">
     <a class="brand" href="./" aria-label="Instituto Diáspora Brasil — início">
       <img class="logo logo-light" src="logo.png" alt="Instituto Diáspora Brasil">
@@ -298,6 +317,8 @@
     <button class="theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">🌓 Tema</button>
   </header>
   <nav class="nav" id="secNav" aria-label="Menu da área"><ul class="navbar" id="navbar"></ul></nav>
+  <nav class="crumbs" id="crumbs" aria-label="Você está em"></nav>
+  </div>
   <div class="route-head" id="routeHead"></div>
   <main class="route" id="route" aria-live="polite"></main>
 </div>
@@ -475,6 +496,7 @@ function preencher(t, dd){
 MENU.forEach(t=>{
   const dd=el("ul",{class:"dd",id:"dd-"+t.id});
   preencher(t, dd);
+  dd.addEventListener("scroll",()=>{ const li=dd.querySelector(".has-sub:hover, .has-sub.open"); if(li) posSub(li); },{passive:true});
   const btn=el("button",{class:"topbtn",type:"button",id:"top-"+t.id,"aria-expanded":"false","aria-controls":"dd-"+t.id,onclick:()=>{ if(t.padrao && !estreito()){ ir(t.padrao, t.id); return; } aberto===t.id?fechar():abrir(t.id); }},t.rotulo,el("span",{class:"chev","aria-hidden":"true"}));
   const li=el("li",{"data-top":t.id},btn,dd);
   li.addEventListener("mouseenter",()=>{ if(!estreito()) abrir(t.id); });
@@ -483,11 +505,24 @@ MENU.forEach(t=>{
 });
 function caber(ul){
   ul.classList.remove("to-left");
-  if(estreito()) return;
+  if(estreito()) { ul.style.maxHeight=""; return; }
   if(ul.getBoundingClientRect().right > document.documentElement.clientWidth - 8) ul.classList.add("to-left");
+  /* a lista nunca passa do fim da tela; se não couber, rola sozinha */
+  ul.style.maxHeight = Math.max(160, innerHeight - ul.getBoundingClientRect().top - 12) + "px";
 }
-navbar.addEventListener("mouseover",e=>{ const li=e.target.closest(".has-sub"); if(li) caber(li.querySelector(":scope > .submenu")); });
-navbar.addEventListener("focusin",e=>{ const li=e.target.closest(".has-sub"); if(li) caber(li.querySelector(":scope > .submenu")); });
+/* submenu ao lado do item, na altura dele, sempre dentro da tela */
+function posSub(li){
+  const sub=li.querySelector(":scope > .submenu"); if(!sub) return;
+  sub.classList.remove("to-left");
+  if(estreito()){ sub.style.top=sub.style.left=""; return; }
+  const r=li.getBoundingClientRect(), w=sub.offsetWidth, h=sub.offsetHeight, vw=document.documentElement.clientWidth;
+  let left=r.right+2;
+  if(left+w > vw-8){ left=r.left-w-2; sub.classList.add("to-left"); }
+  const top=Math.max(8, Math.min(r.top-5, innerHeight-h-8));
+  sub.style.left=left+"px"; sub.style.top=top+"px";
+}
+navbar.addEventListener("mouseover",e=>{ const li=e.target.closest(".has-sub"); if(li) posSub(li); });
+navbar.addEventListener("focusin",e=>{ const li=e.target.closest(".has-sub"); if(li) posSub(li); });
 function abrir(id){
   if(aberto!==id){ const t=byId(MENU,id); preencher(t, $("#dd-"+id)); }
   aberto=id;
@@ -508,7 +543,7 @@ function render(){
   const titulo = n==="regioes" ? "Brasileiros por região" : cid?cid.rotulo : est?est.rotulo : pais?pais.rotulo : reg?reg.nome && "Brasileiros na região: "+reg.nome : "Brasileiros no mundo";
   const inds=indicadores(), ind=inds.find(i=>slug(i)===S.ind);
 
-  const crumbs=el("div",{class:"crumbs"});
+  const crumbs=$("#crumbs"); crumbs.replaceChildren();
   const passos=[["Mundo",{}]];
   if(n==="regioes") passos.push(["Por região",{visao:"regioes"}]);
   if(reg) passos.push([reg.nome,{reg:reg.id}]);
@@ -516,7 +551,7 @@ function render(){
   if(est) passos.push([est.nome,{reg:S.reg,pais:S.pais,est:est.id}]);
   if(cid) passos.push([cid.nome,{reg:S.reg,pais:S.pais,est:S.est,cid:cid.id}]);
   passos.forEach(([nm,sel],i)=>{ if(i) crumbs.append(el("span",{},"›")); crumbs.append(i<passos.length-1?el("button",{type:"button",onclick:()=>{ if(!sel.reg) FREG=""; else if(!sel.pais) FREG=sel.reg; FPAIS=sel.pais&&!sel.est?sel.pais:""; FEST=sel.est&&!sel.cid?sel.est:""; setState(sel); }},nm):el("span",{},nm)); });
-$("#routeHead").replaceChildren(crumbs, el("h2",{}, ind ? titulo+" — "+ind : titulo));
+  $("#routeHead").replaceChildren(el("h2",{}, ind ? titulo+" — "+ind : titulo));
 
   const route=$("#route"); route.replaceChildren();
   const url = DASHBOARDS[noKey()+"|"+S.ind];
@@ -546,9 +581,15 @@ function abrirArea(id){
   secUl.querySelectorAll(".secbtn").forEach(b => b.dataset.area===id ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
   $("#secNav").hidden = !a.menu;
   if (a.menu) { setState({ind:"populacao-total"}); return; }
+  $("#crumbs").replaceChildren();
   $("#routeHead").replaceChildren(el("h2",{}, a.rotulo));
   const route = $("#route"); route.replaceChildren(); renderPendente(route);
 }
+
+/* topo fixo: mede a altura (para o título não ficar escondido ao rolar até ele) e marca quando está preso */
+const topFixa = $("#topFixa");
+new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", topFixa.offsetHeight + "px")).observe(topFixa);
+addEventListener("scroll", () => topFixa.classList.toggle("is-stuck", scrollY > 8), { passive: true });
 
 /* página inicial: Brasileiros no Mundo → População Total */
 abrirArea(AREAS[0].id);
