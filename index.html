@@ -108,7 +108,7 @@
     .dd { overflow-y: auto; overscroll-behavior: contain; }
     .dd::before { display: none; }
     .navbar > li::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; }
-    .submenu { position: fixed; top: 0; left: 0; }
+    .submenu { position: fixed; top: 0; left: 0; width: max-content; max-width: calc(100vw - 16px); }
   }
   .mi {
     width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
@@ -270,7 +270,10 @@
   .copy { border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
 
   /* larguras médias (ex.: coluna de conteúdo do WordPress): menu continua na horizontal, mais compacto */
-  @media (min-width: 601px) and (max-width: 1000px) {
+  @media (min-width: 601px) and (max-width: 1100px) {
+    .topbtn .pre { display: none; }
+  }
+  @media (min-width: 601px) and (max-width: 760px) {
     .topbtn { padding: 8px 8px; font-size: 11px; gap: 6px; letter-spacing: 0.02em; }
   }
   @media (max-width: 600px) {
@@ -566,7 +569,9 @@ MENU.forEach(t=>{
   const dd=el("ul",{class:"dd",id:"dd-"+t.id});
   preencher(t, dd);
   dd.addEventListener("scroll",()=>{ const li=dd.querySelector(".has-sub:hover, .has-sub.open"); if(li) posSub(li); },{passive:true});
-  const btn=el("button",{class:"topbtn",type:"button",id:"top-"+t.id,"aria-expanded":"false","aria-controls":"dd-"+t.id,onclick:()=>{ if(t.padrao && !estreito()){ ir(t.padrao, t.id); return; } aberto===t.id?fechar():abrir(t.id); }},t.rotulo,el("span",{class:"chev","aria-hidden":"true"}));
+  /* "BRASILEIROS " some em telas médias (a área "Brasileiros no Mundo" logo acima já diz isso) */
+  const pre = t.rotulo.match(/^BRASILEIROS /) ? "BRASILEIROS " : "";
+  const btn=el("button",{class:"topbtn",type:"button",id:"top-"+t.id,"aria-label":t.rotulo,"aria-expanded":"false","aria-controls":"dd-"+t.id,onclick:()=>{ if(t.padrao && !estreito()){ ir(t.padrao, t.id); return; } aberto===t.id?fechar():abrir(t.id); }},el("span",{},pre?el("span",{class:"pre"},pre):null,t.rotulo.slice(pre.length)),el("span",{class:"chev","aria-hidden":"true"}));
   const li=el("li",{"data-top":t.id},btn,dd);
   li.addEventListener("mouseenter",()=>{ if(!estreito()) abrir(t.id); });
   li.addEventListener("mouseleave",()=>{ if(!estreito()) fechar(); });
@@ -586,7 +591,12 @@ function posSub(li){
   if(estreito()){ sub.style.top=sub.style.left=""; return; }
   const r=li.getBoundingClientRect(), w=sub.offsetWidth, h=sub.offsetHeight, vw=document.documentElement.clientWidth;
   let left=r.right+2;
-  if(left+w > vw-8){ left=r.left-w-2; sub.classList.add("to-left"); }
+  if(left+w > vw-8){
+    /* não cabe à direita: abre à esquerda; se também não couber, encosta na borda que tiver mais espaço */
+    const esq = r.left-w-2;
+    if(esq >= 8){ left=esq; sub.classList.add("to-left"); }
+    else left = Math.max(8, vw-8-w);
+  }
   const top=Math.max(8, Math.min(r.top-5, innerHeight-h-8));
   sub.style.left=left+"px"; sub.style.top=top+"px";
 }
