@@ -99,12 +99,12 @@
   .submenu::before { content: ""; position: absolute; top: 0; bottom: 0; left: -8px; width: 8px; }
   .navbar > li.open > .dd { display: block; }
   .has-sub.open > .submenu { display: block; }
-  @media (hover: hover) and (min-width: 861px) {
+  @media (hover: hover) and (min-width: 601px) {
     .has-sub:hover > .submenu, .has-sub:focus-within > .submenu { display: block; }
   }
   /* telas largas: com o topo fixo, a lista não acompanha a rolagem da página; por isso ela
      rola sozinha quando não cabe, e o submenu é posicionado na tela (fixed) para não ser cortado */
-  @media (min-width: 861px) {
+  @media (min-width: 601px) {
     .dd { overflow-y: auto; overscroll-behavior: contain; }
     .dd::before { display: none; }
     .navbar > li::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; }
@@ -151,7 +151,7 @@
   .crumbs:empty { display: none; }
   /* topo fixo: logo + áreas, barra de menus e trilha ficam presos ao rolar (só em telas largas;
      no celular os menus viram coluna e ocupariam a tela toda) */
-  @media (min-width: 861px) {
+  @media (min-width: 601px) {
     .top-fixa {
       position: sticky; top: 0; z-index: 25; background: var(--page);
       margin-top: -24px; padding-top: 24px; padding-bottom: 8px;
@@ -269,7 +269,11 @@
   details.spec pre { background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 10px; overflow: auto; max-height: 360px; font-size: 11px; }
   .copy { border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
 
-  @media (max-width: 860px) {
+  /* larguras médias (ex.: coluna de conteúdo do WordPress): menu continua na horizontal, mais compacto */
+  @media (min-width: 601px) and (max-width: 1000px) {
+    .topbtn { padding: 8px 8px; font-size: 11px; gap: 6px; letter-spacing: 0.02em; }
+  }
+  @media (max-width: 600px) {
     .navbar { flex-direction: column; }
     .dd, .submenu { position: static; box-shadow: none; border: 0; min-width: 0; padding: 0 0 0 12px; }
     .mi { white-space: normal; }
@@ -287,7 +291,7 @@
   .dd-filter button { border: 1px solid var(--border); background: var(--page); color: var(--text-secondary); border-radius: 999px; padding: 2px 10px; font-size: 11px; cursor: pointer; }
   .dd-empty { padding: 8px 10px; font-size: 12px; color: var(--text-muted); }
   .so-estreito { display: none; }
-  @media (max-width: 860px), (hover: none) { .so-estreito { display: list-item; } }
+  @media (max-width: 600px), (hover: none) { .so-estreito { display: list-item; } }
   .soon-box { margin-bottom: 16px; border: 1px dashed var(--baseline); border-radius: 10px; padding: 48px 16px; display: grid; gap: 6px; place-items: center; text-align: center; color: var(--text-muted); font-size: 13px; }
   .soon-box strong { font-size: 12px; letter-spacing: 0.08em; color: var(--text-secondary); }
   .soon { font-size: 10px; color: var(--text-muted); border: 1px dashed var(--baseline); border-radius: 999px; padding: 0 6px; margin-left: 8px; }
@@ -321,6 +325,12 @@
     .secbtn[aria-current="page"]::after { bottom: 0; }
     .site-head .theme-toggle { margin-left: auto; }
   }
+  /* no WordPress não há logo: áreas e botão de tema cabem na mesma linha */
+  :root[data-shell] .site-head { flex-wrap: nowrap; }
+  :root[data-shell] .sections { order: 0; flex-basis: auto; }
+  :root[data-shell] .sections ul { justify-content: flex-start; }
+  :root[data-shell] .site-head .theme-toggle { margin-left: auto; }
+  @media (max-width: 600px) { :root[data-shell] .site-head { flex-wrap: wrap; } }
 </style>
 </head>
 <body>
@@ -486,7 +496,7 @@ function setState(sel){
 let aberto=null;
 const navbar=$("#navbar");
 const temDash = sel => { const n = sel.cid?"cidade:"+sel.cid : sel.est?"estado:"+sel.est : sel.pais?"pais:"+sel.pais : sel.reg?"regiao:"+sel.reg : "mundo"; return DASHBOARDS[n+"|"+(sel.ind||"populacao-total-da-regiao")] || DASHBOARDS[n+"|"+(sel.ind||"populacao-total")]; };
-const estreito = () => matchMedia("(max-width:860px), (hover:none)").matches;
+const estreito = () => matchMedia("(max-width:600px), (hover:none)").matches;
 /* Filtro de região: ligado só pela escolha no menu "Brasileiros por região";
    restringe as listas de país, estado/província e cidade, sempre com aviso visível. */
 let FREG = "";
